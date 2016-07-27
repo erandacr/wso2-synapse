@@ -257,6 +257,8 @@ public class PassThroughHttpSender extends AbstractHandler implements TransportS
             } else {
                 handleException("Cannot send message to " + AddressingConstants.Final.WSA_NONE_URI);
             }
+        } else if (msgContext.getAxisMessage().getDirection() == null) {
+            handleException("Message flow is not valid");
         } else {
             if (msgContext.getProperty(Constants.OUT_TRANSPORT_INFO) != null) {
                 if (msgContext.getProperty(Constants.OUT_TRANSPORT_INFO) instanceof ServerWorker) {
