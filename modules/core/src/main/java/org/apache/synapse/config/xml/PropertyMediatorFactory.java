@@ -84,8 +84,11 @@ public class PropertyMediatorFactory extends AbstractMediatorFactory {
             propMediator.setValueElement(valueElement);
         } else if (expression != null) {
             try {
-                propMediator.setExpression(SynapsePathFactory.getSynapsePath(elem, ATT_EXPRN),
-                    dataType);
+                SynapsePath synapsePath = SynapsePathFactory.getSynapsePath(elem, ATT_EXPRN);
+                propMediator.setExpression(synapsePath, dataType);
+                if (SynapsePathFactory.isDynamicExpression(elem, ATT_EXPRN)) {
+                    propMediator.setDynamicExpression(SynapsePathFactory.getSynapseDynamicPath(elem, ATT_EXPRN));
+                }
             } catch (JaxenException e) {
                 String msg = "Invalid XPath expression for attribute 'expression' : " +
                         expression.getAttributeValue();

@@ -33,6 +33,8 @@ import org.apache.synapse.transport.passthru.PassThroughConstants;
 import org.apache.axiom.om.OMElement;
 import org.apache.axis2.util.JavaUtils;
 import org.apache.http.protocol.HTTP;
+import org.apache.synapse.util.xpath.SynapseDynamicPath;
+import org.jaxen.JaxenException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,6 +62,8 @@ public class PropertyMediator extends AbstractMediator {
     private OMElement valueElement = null;
     /** The XPath expr. to get value  */
     private SynapsePath expression = null;
+    /** DynamicXPath */
+    private SynapseDynamicPath dynamicExpression = null;
     /** The scope for which decide properties where to go*/
     private String scope = null;
     /** The Action - set or remove */
@@ -101,6 +105,10 @@ public class PropertyMediator extends AbstractMediator {
             if (synLog.isTraceTraceEnabled()) {
                 synLog.traceTrace("Message : " + synCtx.getEnvelope());
             }
+        }
+
+        if (dynamicExpression != null) {
+            deriveExpression(synCtx);
         }
 
         if (action == ACTION_SET) {
@@ -469,5 +477,21 @@ public class PropertyMediator extends AbstractMediator {
 
     @Override public String getMediatorName() {
         return super.getMediatorName() + ":" + name;
+    }
+
+    public void setDynamicExpression(SynapseDynamicPath synapseDynamicPath) {
+        this.dynamicExpression = synapseDynamicPath;
+    }
+
+    public void deriveExpression(MessageContext synCtx) {
+        this.dynamicExpression.includeDynamicProperties(synCtx);
+        try {
+            this.expression = this.dynamicExpression.buildDynamicXPath();
+        } catch (JaxenException e) {
+        String msg = "Invalid XPath expression for attribute 'expression' : " +
+                dynamicExpression.getXpathExpr();
+        log.error(msg);
+        throw new SynapseException(msg);
+    }
     }
 }

@@ -24,6 +24,7 @@ import org.apache.axiom.om.OMElement;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.SynapseException;
+import org.apache.synapse.util.xpath.SynapseDynamicPath;
 import org.apache.synapse.util.xpath.SynapseJsonPath;
 import org.apache.synapse.util.xpath.SynapseXPath;
 import org.jaxen.JaxenException;
@@ -42,17 +43,26 @@ public class SynapsePathFactory {
 
         SynapsePath path = null;
         OMAttribute pathAttrib = elem.getAttribute(attribName);
+        String expression;
 
         if (pathAttrib != null && pathAttrib.getAttributeValue() != null) {
+            expression = pathAttrib.getAttributeValue();
 
-            if(pathAttrib.getAttributeValue().startsWith("json-eval(")) {
-                path = new SynapseJsonPath(pathAttrib.getAttributeValue().substring(10, pathAttrib.getAttributeValue().length() - 1));
+            if (pathAttrib.getAttributeValue().contains("/{") || pathAttrib.getAttributeValue().contains(":{")) {
+                expression = expression.replace("{","");
+                expression = expression.replace("}","");
+            }
+
+            if (expression.startsWith("json-eval(")) {
+                path = new SynapseJsonPath(
+                        expression.substring(10, pathAttrib.getAttributeValue().length() - 1));
             } else {
-                path = new SynapseXPath(pathAttrib.getAttributeValue());
+                path = new SynapseXPath(expression);
             }
 
             OMElementUtils.addNameSpaces(path, elem, log);
             path.addNamespacesForFallbackProcessing(elem);
+
 
         } else {
             handleException("Couldn't find the XPath attribute with the QName : "
@@ -80,4 +90,33 @@ public class SynapsePathFactory {
         log.error(message);
         throw new SynapseException(message);
     }
-}
+
+    public static SynapseDynamicPath getSynapseDynamicPath(OMElement elem, QName attribName) {
+        OMAttribute pathAttrib = elem.getAttribute(attribName);
+        SynapseDynamicPath synapseDynamicPath = null;
+
+        if (pathAttrib != null && pathAttrib.getAttributeValue() != null) {
+
+            if (pathAttrib.getAttributeValue().startsWith("json-eval(")) {
+                synapseDynamicPath = new SynapseDynamicPath(
+                        pathAttrib.getAttributeValue().substring(10, pathAttrib.getAttributeValue().length() - 1), true);
+            } else {
+                synapseDynamicPath = new SynapseDynamicPath(pathAttrib.getAttributeValue(), false);
+            }
+            synapseDynamicPath.setNamespace(elem);
+
+        }
+        return synapseDynamicPath;
+    }
+
+    public static boolean isDynamicExpression(OMElement elem, QName attribName) {
+        OMAttribute pathAttrib = elem.getAttribute(attribName);
+
+        if (pathAttrib != null && pathAttrib.getAttributeValue() != null) {
+            return (pathAttrib.getAttributeValue().contains("/{") || pathAttrib.getAttributeValue().contains(":{"));
+        }
+
+        return false;
+    }
+
+    }
